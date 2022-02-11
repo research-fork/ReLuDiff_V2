@@ -7,7 +7,7 @@
 
 # Artifact Contents
 This artifact contains everything necessary to reproduce the results of our ICSE 2020 Paper "ReluDiff: Differential Verification of Deep Neural Networks." This includes:
-- Source code used to run the experiments on ReluDiff, ReluVal, and DeepPoly
+- Source code used to run the experiments on ReluDiff
 - Neural networks used in the experiments
 - Tools to produce the truncated networks and subtracted networks
 - Documentation on how use our tools and re-run our experiments
@@ -64,23 +64,6 @@ This directory contains scripts for:
 #### nnet/
 This directory contains all of the neural networks used in our examples. The file format for the neural network is described [here](https://github.com/sisl/NNet/).
 
-### ReluVal-for-comparison/
-This directory contains a slightly modified version of [ReluVal](https://github.com/tcwangshiqi-columbia/ReluVal). Documentation on its contents can be found [here](https://github.com/tcwangshiqi-columbia/ReluVal).
-
-Our modified version makes a small change to the forward pass so that it correctly handles the subtracted networks. Specifically, we change the forward pass so that the final _two_ layers of the input neural network perform only an affine transformation (as opposed to affine transform + ReLU). The original ReluVal only does this for the final layer.
-
-In addition, we add our new input properties to ReluVal. The method for doing this is described in the original ReluVal documentation.
-
-### eran/
-This directory contains the original source code of [ERAN](https://github.com/eth-sri/eran). The documentation can be found [here](https://github.com/eth-sri/eran). It also contains some additional files for performing our experiments. We document them below.
-#### eran/tf\_verify/diff\_analysis.py
-This is the entry point for running our experiments.
-#### eran/tf\_verify/diff\_analysis\_artifact.py
-This is the entry point for running our artifact experiments.
-
-#### eran/NNet/nnet
-This directory contains all of the subtracted networks that we used in our experiments. They are in the format used by ERAN.
-
 # Tool Usage Documentation
 Here we document how to use the various scripts and tools for each of the techniques we evaluated in our paper.
 ## ReluDiff
@@ -96,7 +79,7 @@ This is ReluDiff's main executable. To get a help menu, run *./delta\_network\_t
 - NNET1, NNET2: file paths to \*.nnet files to compare.
 - EPSILON: A floating point value. ReluDiff will attempt to verify that NNET1 and NNET2 cannot differ by more than EPSILON over the input region defined by PROPERTY
 - OPTIONS<br/>
-	-p PERTURB : specifies the strength of the global perturbation to apply to the MNIST and HAR properties. For MNIST this should be an integer between 0-254. For HAR, this should be a float between -1 to 1.<br/>
+	-p PERTURB : specifies the strength of the global perturbation to apply to the MNIST and HAR properties. For MNIST this should be an integer between 0-254. For HAR, this should be a float between 0 to 1.<br/>
 	-t : Performs three pixel perturbation on the MNIST images instead of global perturbation<br/>
 	-m DEPTH : (not used for our paper) forces the analysis to 2^DEPTH splits and then prints region verified at each depth<br/>
 
@@ -140,39 +123,20 @@ These four scripts contain an example of how to run ReluDiff for a single proper
 ### DiffNN-Code/scripts/run\_ACAS\_prop4\_depth\_exp.sh
 This collects depth information when verifying property 4 as desribed in the evaluation of our paper. Each time the forward pass is able to ceritify a sub-interval, it outputs an integer indicating the current depth to a log file.
 
-## ReluVal
-### ReluVal-for-comparison/network\_test
-This is the main executable for running ReluVal in our experiments. It's usage is identical to *delta\_network\_test* except that it takes a single subtracted neural network instead of two neural networks. It's output is also identical to *delta\_network\_test*.
-
-### ReluVal-for-comparison/scripts
-This directory contains scripts for running ReluVal's experiments as described in our paper. They are identical to ReluDiff's experimental scripts.
-
-## DeepPoly
-### eran/tf\_verify/diff\_analysis.py
-This is the main entry script for running the DeepPoly experiments described in the paper. It takes a single argument indicating which of the four experiments to run.
-```console
-# from the eran/tf_verify directory
-python3 diff_analysis.py [acas|mnist-global|mnist-3pixel|har]
-```
-For each property it tries to verify, the script will output a line beginning with "Result: " followed by triple of floating points. The first float is the time taken to perform the verification. The next two floats are the upper and lower bound of the target output neuron. The next line will either be "Failed" or "Verified" indicating the verification result. Note that "Failed" means that the result was inconclusive.
-
-### eran/tf\_verify/diff\_analysis\_artifact.py
-This is the main entry script for running our artifact experiments. It's usage and output is identical to the above, however it only runs a small subset of the experiements.
-
 # Running the Experiments
 Here we document how to re-run our experiments.
 ## Compile the Code
-Both ReluDiff and ReluVal can be compiled either with or without multi-threading. If you want multithreading, you will need to specify how many threads. In the evaluation of our paper, we configured 10 threads, so if you want to reproduce our experiments, you should compile both ReluDiff and ReluVal as such.
+Both ReluDiff and ReluVal can be compiled either with or without multi-threading. If you want multithreading, you will need to specify how many threads. In the evaluation of our paper, we configured 10 threads, so if you want to reproduce our experiments, you should compile  ReluDiff as such.
 
 To compile without threads, run:
 ```console
-# from DiffNN-code/ or ReluVal-for-comparison/
+# from DiffNN-code/ 
 make clean all
 ```
 
 To compile in multi-threaded mode, run:
 ```console
-# from DiffNN-code/ or ReluVal-for-comparison/
+# from DiffNN-code/ 
 CFLAGS+=-DMAX_THREAD=10 make clean all
 ```
 Replace 10 with the desired number of threads.
@@ -199,29 +163,15 @@ bash scripts/run_HAR_artifact.sh
 ```
 ReluDiff should be able to verify all of these very quickly. ReluVal should finish ACAS and the MNIST 3 pixel, however it will take more than 30 minutes for the MNIST global, and it will throw a segmentation fault on HAR due to unbounded recursion.
 
-```console
-# from eran/tf_verify
-python3 diff_analysis_artifact.py acas
-python3 diff_analysis_artifact.py mnist-global
-python3 diff_analysis_artifact.py mnist-3pixel
-python3 diff_analysis_artifact.py har
-```
-DeepPoly should fail to verify all of the properties except the MNIST 3 pixel.
+
 
 ### Full Experiments
 We also provide the scripts to re-run our full experiments. They will output the results to seperate log files beginning with *exec-time\_out*.
 ```console
-# from DiffNN-Code/ or ReluVal-for-comparison/
+# from DiffNN-Code/ 
 bash scripts/run_ACAS_exec-time_experiments.sh
 bash scripts/run_MNIST-global_exec-time_experiments.sh
 bash scripts/run_MNIST-3pix_exec-time_experiments.sh
 bash scripts/run_HAR_exec-time_experiments.sh
 ```
 
-```console
-# from eran/tf_verify
-python3 diff_analysis.py acas
-python3 diff_analysis.py mnist-global
-python3 diff_analysis.py mnist-3pixel
-python3 diff_analysis.py har
-```
